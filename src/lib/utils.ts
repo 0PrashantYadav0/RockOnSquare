@@ -69,3 +69,29 @@ export function checkRateLimit(
 export function clearRateLimit(key: string): void {
   rateLimitStore.delete(key)
 }
+
+/**
+ * Returns `target` only if it is a same-origin relative path, otherwise `fallback`.
+ * Prevents open redirects via ?callbackUrl=https://evil.com or //evil.com.
+ */
+export function safeRedirectPath(target: string | null | undefined, fallback: string): string {
+  if (!target || !target.startsWith('/')) return fallback
+  try {
+    const base = 'http://internal.invalid'
+    const url = new URL(target, base)
+    return url.origin === base ? url.pathname + url.search + url.hash : fallback
+  } catch {
+    return fallback
+  }
+}
+
+/**
+ * Client IP for rate limiting. Prefers x-real-ip, else the rightmost
+ * X-Forwarded-For entry (added by our proxy) — the leftmost is client-controlled.
+ */
+export function clientIp(headers: Headers): string | null {
+  const realIp = headers.get('x-real-ip')?.trim()
+  if (realIp) return realIp
+  const forwarded = headers.get('x-forwarded-for')?.split(',').map((s) => s.trim()).filter(Boolean)
+  return forwarded?.at(-1) || null
+}
