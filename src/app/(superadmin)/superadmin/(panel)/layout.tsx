@@ -8,7 +8,7 @@ export default async function SuperAdminPagesLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Server-side auth guard — middleware handles redirect but we double-check
+  // Server-side auth guard — middleware can't check session revocation
   const session = await auth();
   if (!session?.user || session.user.role !== "superadmin") {
     redirect("/superadmin/login?reason=unauthorized");

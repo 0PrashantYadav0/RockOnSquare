@@ -106,18 +106,22 @@ export async function POST(req: NextRequest) {
           message: "Your enquiry has been received. Our team will contact you shortly.",
         });
       } catch (dbErr) {
+        // Don't report success for a lead that was never saved
         console.error("[Enquiry] Database error:", dbErr);
-        // Fall through to demo response below
+        return NextResponse.json(
+          { error: "We couldn't save your enquiry. Please try again or contact us directly." },
+          { status: 503 }
+        );
       }
     }
 
-    // Fallback: demo mode (no DB)
+    // Demo mode (no DB configured)
     return NextResponse.json({
       success: true,
       referenceId,
       message:
         "Your enquiry has been received. Our team will contact you shortly.",
-      isDemo: !isDbConfigured(),
+      isDemo: true,
     });
   } catch (error) {
     console.error("[Enquiry] Unexpected error:", error);

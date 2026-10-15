@@ -3,13 +3,14 @@
 import React, { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { safeRedirectPath } from "@/lib/utils";
 import { Eye, EyeOff, Loader2, AlertCircle, Clock } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const reason = searchParams.get("reason");
-  const callbackUrl = searchParams.get("callbackUrl") || "/admin/dashboard";
+  const callbackUrl = safeRedirectPath(searchParams.get("callbackUrl"), "/admin/dashboard");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,8 +37,8 @@ function LoginForm() {
       });
 
       if (result?.error) {
-        if (result.error.includes("Too many login attempts")) {
-          setError(result.error);
+        if (result.code === "rate_limited") {
+          setError("Too many login attempts. Please try again after 15 minutes.");
         } else {
           setError("Invalid email or password. Please try again.");
         }
