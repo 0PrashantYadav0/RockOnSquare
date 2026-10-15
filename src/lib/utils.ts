@@ -84,3 +84,14 @@ export function safeRedirectPath(target: string | null | undefined, fallback: st
     return fallback
   }
 }
+
+/**
+ * Client IP for rate limiting. Prefers x-real-ip, else the rightmost
+ * X-Forwarded-For entry (added by our proxy) — the leftmost is client-controlled.
+ */
+export function clientIp(headers: Headers): string | null {
+  const realIp = headers.get('x-real-ip')?.trim()
+  if (realIp) return realIp
+  const forwarded = headers.get('x-forwarded-for')?.split(',').map((s) => s.trim()).filter(Boolean)
+  return forwarded?.at(-1) || null
+}

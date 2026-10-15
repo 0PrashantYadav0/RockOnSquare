@@ -1,20 +1,10 @@
 ﻿"use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { auth } from "@/lib/auth/auth";
+import { requireSuperAdmin } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
-
-// ─── Auth Guard (superadmin only) ────────────────────────────────────────────
-
-async function requireSuperAdmin() {
-  const session = await auth();
-  if (!session?.user) redirect("/superadmin/login");
-  if (session.user.role !== "superadmin") redirect("/superadmin/login?reason=unauthorized");
-  return session;
-}
 
 async function writeAuditLog(
   userId: string,

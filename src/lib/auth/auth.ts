@@ -2,7 +2,7 @@
 import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { checkRateLimit, clearRateLimit } from "@/lib/utils";
+import { checkRateLimit, clearRateLimit, clientIp } from "@/lib/utils";
 import { prisma } from "@/lib/db/prisma";
 import { authConfig, PANEL_ROLES, sessionLifetime } from "./auth.config";
 
@@ -19,14 +19,6 @@ const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 
 class RateLimitedError extends CredentialsSignin {
   code = "rate_limited";
-}
-
-function clientIp(request: Request): string {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown"
-  );
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -46,12 +38,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const { email, password, panel } = parsed.data;
 
         // Rate limiting: 5 attempts per email and 20 per IP per 15 minutes
+        // (IP limit skipped when unknown, so all such requests don't share one bucket)
         // ponytail: in-memory per instance; move to a shared store (Redis) if running many instances
         const emailKey = `admin-login:${email}`;
-        const ipKey = `admin-login-ip:${clientIp(request)}`;
+        const ip = clientIp(request.headers);
         if (
           !checkRateLimit(emailKey, 5, RATE_LIMIT_WINDOW_MS).allowed ||
-          !checkRateLimit(ipKey, 20, RATE_LIMIT_WINDOW_MS).allowed
+          (ip && !checkRateLimit(`admin-login-ip:${ip}`, 20, RATE_LIMIT_WINDOW_MS).allowed)
         ) {
           throw new RateLimitedError();
         }

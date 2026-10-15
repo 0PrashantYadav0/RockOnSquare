@@ -4,18 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { prisma } from '@/lib/db/prisma'
-import { auth } from '@/lib/auth/auth'
-import { PANEL_ROLES } from '@/lib/auth/auth.config'
-
-// ─── Auth guard ─────────────────────────────────────────────────────────────
-
-async function requireAdmin() {
-  const session = await auth()
-  if (!session?.user || !PANEL_ROLES.includes(session.user.role)) {
-    redirect('/admin/login?reason=unauthorized')
-  }
-  return session
-}
+import { requireAdmin } from '@/lib/auth/guards'
 
 // ─── Banner Actions ──────────────────────────────────────────────────────────
 
@@ -435,7 +424,7 @@ export async function updateSetting(key: string, value: string): Promise<void> {
   if (!setting || setting.group === 'system') return
   await prisma.siteSetting.update({
     where: { key },
-    data: { value: z.string().max(2000).parse(value) },
+    data: { value: value.slice(0, 2000) },
   })
   revalidatePath('/admin/settings')
   revalidatePath('/')

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import type { JWT } from 'next-auth/jwt'
-import { checkRateLimit, clearRateLimit, safeRedirectPath } from '@/lib/utils'
+import { checkRateLimit, clearRateLimit, clientIp, safeRedirectPath } from '@/lib/utils'
 import { authConfig, INACTIVITY_TIMEOUT_SECONDS, SESSION_DURATIONS } from '@/lib/auth/auth.config'
 
 const jwt = (args: { token: JWT; user?: Record<string, unknown> }) =>
@@ -31,6 +31,12 @@ describe('Admin Authentication Security', () => {
     expect(safeRedirectPath('//evil.com/admin', '/x')).toBe('/x')
     expect(safeRedirectPath('/\\evil.com', '/x')).toBe('/x')
     expect(safeRedirectPath('javascript:alert(1)', '/x')).toBe('/x')
+  })
+
+  it('takes client IP from x-real-ip or the proxy-appended X-Forwarded-For entry', () => {
+    expect(clientIp(new Headers({ 'x-real-ip': '1.1.1.1', 'x-forwarded-for': '6.6.6.6' }))).toBe('1.1.1.1')
+    expect(clientIp(new Headers({ 'x-forwarded-for': '6.6.6.6, 2.2.2.2' }))).toBe('2.2.2.2')
+    expect(clientIp(new Headers())).toBeNull()
   })
 
   it('issues a token with role-based lifetime and session id on sign-in', () => {

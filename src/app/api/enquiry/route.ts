@@ -1,6 +1,6 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { enquirySchema } from "@/lib/validation/schemas";
-import { generateReferenceId, checkRateLimit } from "@/lib/utils";
+import { generateReferenceId, checkRateLimit, clientIp } from "@/lib/utils";
 import { prisma } from "@/lib/db/prisma";
 
 // Rate limit: 5 enquiries per IP per 15 minutes
@@ -19,10 +19,7 @@ function isDbConfigured(): boolean {
 export async function POST(req: NextRequest) {
   try {
     // Rate limiting by IP
-    const ip =
-      req.headers.get("x-forwarded-for")?.split(",")[0] ||
-      req.headers.get("x-real-ip") ||
-      "unknown";
+    const ip = clientIp(req.headers) ?? "unknown";
 
     const { allowed } = checkRateLimit(
       `enquiry:${ip}`,

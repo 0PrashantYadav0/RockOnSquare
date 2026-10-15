@@ -1,6 +1,7 @@
 ﻿import React from "react";
 import { prisma } from "@/lib/db/prisma";
 import { updatePrivilegedSetting } from "@/lib/actions/superadmin";
+import { requireSuperAdmin } from "@/lib/auth/guards";
 import { Settings, Shield } from "lucide-react";
 
 async function getSettings() {
@@ -12,6 +13,7 @@ async function getSettings() {
 }
 
 export default async function SuperAdminSettingsPage() {
+  await requireSuperAdmin();
   const settings = await getSettings();
 
   return (
