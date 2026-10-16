@@ -197,3 +197,11 @@ Before taking this site live, complete the following verifications:
 ## License
 
 Add the appropriate license information before distributing this project publicly.
+
+## Project Status
+
+Development and testing in progress.\
+
+## Development Workflow
+
+This project uses Git branches and pull requests to review changes before merging them into the main branch.
