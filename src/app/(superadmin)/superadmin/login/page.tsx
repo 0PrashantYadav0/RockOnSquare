@@ -77,7 +77,7 @@ function SuperAdminLoginForm() {
             <Clock className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
             <p className="text-amber-300 text-xs leading-relaxed">
               {reason === "expired"
-                ? "Your session has expired (7-day maximum reached). Please sign in again."
+                ? "Your session has ended. Please sign in again."
                 : "Your session expired due to inactivity. Please sign in again."}
             </p>
           </div>
