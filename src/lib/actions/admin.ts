@@ -4,17 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { prisma } from '@/lib/db/prisma'
-import { auth } from '@/lib/auth/auth'
-
-// ─── Auth guard ─────────────────────────────────────────────────────────────
-
-async function requireAdmin() {
-  const session = await auth()
-  if (!session?.user) {
-    redirect('/admin/login')
-  }
-  return session
-}
+import { requireAdmin } from '@/lib/auth/guards'
 
 // ─── Banner Actions ──────────────────────────────────────────────────────────
 
@@ -399,7 +389,7 @@ const UpdateLeadSchema = z.object({
 })
 
 export async function updateLeadStatus(id: string, formData: FormData): Promise<void> {
-  await requireAdmin()
+  const session = await requireAdmin()
   const raw = Object.fromEntries(formData)
   const parsed = UpdateLeadSchema.safeParse(raw)
   if (!parsed.success) {
@@ -412,16 +402,13 @@ export async function updateLeadStatus(id: string, formData: FormData): Promise<
     data: { status: data.status },
   })
   if (data.notes) {
-    const session = await auth()
-    if (session?.user?.id) {
-      await prisma.leadNote.create({
-        data: {
-          enquiryId: id,
-          note: data.notes,
-          userId: session.user.id,
-        },
-      })
-    }
+    await prisma.leadNote.create({
+      data: {
+        enquiryId: id,
+        note: data.notes,
+        userId: session.user.id,
+      },
+    })
   }
   revalidatePath('/admin/leads')
   revalidatePath(`/admin/leads/${id}`)
@@ -431,10 +418,13 @@ export async function updateLeadStatus(id: string, formData: FormData): Promise<
 
 export async function updateSetting(key: string, value: string): Promise<void> {
   await requireAdmin()
-  await prisma.siteSetting.upsert({
+  // Admins may only edit existing, non-system settings; creating keys and
+  // touching "system" settings is superadmin-only (updatePrivilegedSetting).
+  const setting = await prisma.siteSetting.findUnique({ where: { key }, select: { group: true } })
+  if (!setting || setting.group === 'system') return
+  await prisma.siteSetting.update({
     where: { key },
-    update: { value },
-    create: { key, value, label: key, group: 'GENERAL' },
+    data: { value: value.slice(0, 2000) },
   })
   revalidatePath('/admin/settings')
   revalidatePath('/')
